@@ -42,6 +42,18 @@ export const dbAll = <T = any>(sql: string, params?: any[]): Promise<T[]> => {
 
 // Initialize database schema
 export const initDatabase = async () => {
+  // Users table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      createdAt TEXT NOT NULL
+    )
+  `);
+
   await dbRun(`
     CREATE TABLE IF NOT EXISTS models (
       id TEXT PRIMARY KEY,
@@ -50,7 +62,9 @@ export const initDatabase = async () => {
       apiKey TEXT NOT NULL,
       baseUrl TEXT NOT NULL,
       isActive INTEGER DEFAULT 1,
-      createdAt TEXT NOT NULL
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
 
@@ -80,7 +94,71 @@ export const initDatabase = async () => {
       documentName TEXT,
       documentType TEXT,
       requirements TEXT,
+      userId TEXT,
       createdAt TEXT NOT NULL,
+      FOREIGN KEY (modelId) REFERENCES models(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Test templates table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS test_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      type TEXT NOT NULL,
+      question TEXT,
+      documentType TEXT,
+      requirements TEXT,
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Batch tests table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS batch_tests (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      modelIds TEXT NOT NULL,
+      templateIds TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      progress REAL DEFAULT 0,
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      completedAt TEXT,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Scheduled tests table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS scheduled_tests (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      cronExpression TEXT NOT NULL,
+      modelIds TEXT NOT NULL,
+      templateIds TEXT NOT NULL,
+      isActive INTEGER DEFAULT 1,
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      lastRun TEXT,
+      nextRun TEXT,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Performance snapshots table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS performance_snapshots (
+      id TEXT PRIMARY KEY,
+      modelId TEXT NOT NULL,
+      averageResponseTime REAL NOT NULL,
+      averageGrade REAL NOT NULL,
+      testCount INTEGER NOT NULL,
+      timestamp TEXT NOT NULL,
       FOREIGN KEY (modelId) REFERENCES models(id)
     )
   `);

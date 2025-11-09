@@ -3,14 +3,30 @@ import { v4 as uuidv4 } from 'uuid';
 import { dbRun, dbGet, dbAll } from '../database';
 import { AIModel, ApiKeyValidationRequest } from '../types';
 import { createAIClient } from '../services/aiClient';
+import { encryptApiKey, decryptApiKey } from '../services/encryption';
 
 const router = Router();
+
+// Helper to decrypt model API keys
+const decryptModelApiKey = (model: AIModel): AIModel => {
+  try {
+    return {
+      ...model,
+      apiKey: decryptApiKey(model.apiKey),
+    };
+  } catch (error) {
+    // If decryption fails, assume it's already decrypted (backward compatibility)
+    return model;
+  }
+};
 
 // Get all models
 router.get('/', async (req: Request, res: Response) => {
   try {
     const models = await dbAll<AIModel>('SELECT * FROM models ORDER BY createdAt DESC');
-    res.json(models);
+    // Decrypt API keys before sending
+    const decryptedModels = models.map(decryptModelApiKey);
+    res.json(decryptedModels);
   } catch (error: any) {
     console.error('Error fetching models:', error);
     res.status(500).json({ error: 'Failed to fetch models' });
@@ -26,7 +42,9 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Model not found' });
     }
 
-    res.json(model);
+    // Decrypt API key before sending
+    const decryptedModel = decryptModelApiKey(model);
+    res.json(decryptedModel);
   } catch (error: any) {
     console.error('Error fetching model:', error);
     res.status(500).json({ error: 'Failed to fetch model' });
@@ -76,11 +94,14 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: `Invalid API credentials: ${validation.message}` });
     }
 
+    // Encrypt API key before storing
+    const encryptedApiKey = encryptApiKey(apiKey);
+
     const model: AIModel = {
       id: uuidv4(),
       name,
       provider,
-      apiKey,
+      apiKey: encryptedApiKey,
       baseUrl,
       isActive: true,
       createdAt: new Date().toISOString(),
@@ -92,7 +113,8 @@ router.post('/', async (req: Request, res: Response) => {
       [model.id, model.name, model.provider, model.apiKey, model.baseUrl, 1, model.createdAt]
     );
 
-    res.status(201).json(model);
+    // Return with decrypted key for immediate use
+    res.status(201).json({ ...model, apiKey });
   } catch (error: any) {
     console.error('Error adding model:', error);
     res.status(500).json({ error: 'Failed to add model' });
@@ -111,8 +133,11 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Model not found' });
     }
 
+    // Decrypt existing API key for comparison
+    const decryptedExisting = decryptModelApiKey(existing);
+
     // If API key or baseUrl changed, validate the new credentials
-    if (apiKey !== existing.apiKey || baseUrl !== existing.baseUrl) {
+    if (apiKey !== decryptedExisting.apiKey || baseUrl !== existing.baseUrl) {
       const client = createAIClient({ provider, apiKey, baseUrl });
       const validation = await client.validateConnection();
 
@@ -121,14 +146,22 @@ router.put('/:id', async (req: Request, res: Response) => {
       }
     }
 
+    // Encrypt API key before saving
+    const encryptedApiKey = apiKey !== decryptedExisting.apiKey ? encryptApiKey(apiKey) : existing.apiKey;
+
     await dbRun(
       `UPDATE models SET name = ?, provider = ?, apiKey = ?, baseUrl = ?, isActive = ?
        WHERE id = ?`,
-      [name, provider, apiKey, baseUrl, isActive ? 1 : 0, id]
+      [name, provider, encryptedApiKey, baseUrl, isActive ? 1 : 0, id]
     );
 
     const updated = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);
-    res.json(updated);
+    if (updated) {
+      const decryptedUpdated = decryptModelApiKey(updated);
+      res.json(decryptedUpdated);
+    } else {
+      res.status(404).json({ error: 'Model not found after update' });
+    }
   } catch (error: any) {
     console.error('Error updating model:', error);
     res.status(500).json({ error: 'Failed to update model' });

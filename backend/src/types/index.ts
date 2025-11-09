@@ -1,3 +1,13 @@
+// User types
+export interface User {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+}
+
 export interface AIModel {
   id: string;
   name: string;
@@ -5,6 +15,7 @@ export interface AIModel {
   apiKey: string;
   baseUrl: string;
   isActive: boolean;
+  userId?: string;
   createdAt: string;
 }
 
@@ -91,4 +102,54 @@ export interface BenchmarkStats {
     document_analysis: number;
     document_drafting: number;
   };
+}
+
+// Test Template types
+export interface TestTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: 'legal_reasoning' | 'document_analysis' | 'document_drafting';
+  question?: string;
+  documentType?: string;
+  requirements?: string;
+  userId?: string;
+  createdAt: string;
+}
+
+// Batch Test types
+export interface BatchTest {
+  id: string;
+  name: string;
+  modelIds: string[];
+  templateIds: string[];
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  userId?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// Scheduled Test types
+export interface ScheduledTest {
+  id: string;
+  name: string;
+  cronExpression: string;
+  modelIds: string[];
+  templateIds: string[];
+  isActive: boolean;
+  userId?: string;
+  createdAt: string;
+  lastRun?: string;
+  nextRun?: string;
+}
+
+// Performance History types
+export interface PerformanceSnapshot {
+  id: string;
+  modelId: string;
+  averageResponseTime: number;
+  averageGrade: number;
+  testCount: number;
+  timestamp: string;
 }

@@ -3,9 +3,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { initDatabase } from './database';
+import authRouter from './routes/auth';
 import modelsRouter from './routes/models';
 import documentsRouter from './routes/documents';
 import benchmarksRouter from './routes/benchmarks';
+import templatesRouter from './routes/templates';
+import exportRouter from './routes/export';
 
 // Load environment variables
 dotenv.config();
@@ -19,9 +22,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/models', modelsRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/benchmarks', benchmarksRouter);
+app.use('/api/templates', templatesRouter);
+app.use('/api/export', exportRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
