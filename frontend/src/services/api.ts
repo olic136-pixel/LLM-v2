@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AIModel, BenchmarkTest, Document, BenchmarkStats } from '../types';
+import { AIModel, BenchmarkTest, Document, BenchmarkStats, User, TestTemplate } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -9,6 +9,43 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Authentication API
+export const authApi = {
+  register: async (data: { email: string; password: string; name: string }): Promise<{ user: User; token: string }> => {
+    const response = await api.post('/auth/register', data);
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+    }
+    return response.data;
+  },
+
+  login: async (data: { email: string; password: string }): Promise<{ user: User; token: string }> => {
+    const response = await api.post('/auth/login', data);
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+    }
+    return response.data;
+  },
+
+  logout: () => {
+    localStorage.removeItem('authToken');
+  },
+
+  getCurrentUser: async (): Promise<User> => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+};
 
 // Models API
 export const modelsApi = {
@@ -111,6 +148,58 @@ export const benchmarksApi = {
 
   getStats: async (): Promise<BenchmarkStats[]> => {
     const response = await api.get('/benchmarks/stats/summary');
+    return response.data;
+  },
+};
+
+// Templates API
+export const templatesApi = {
+  getAll: async (): Promise<TestTemplate[]> => {
+    const response = await api.get('/templates');
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<TestTemplate> => {
+    const response = await api.get(`/templates/${id}`);
+    return response.data;
+  },
+
+  create: async (template: Omit<TestTemplate, 'id' | 'createdAt' | 'userId'>): Promise<TestTemplate> => {
+    const response = await api.post('/templates', template);
+    return response.data;
+  },
+
+  update: async (id: string, template: Partial<TestTemplate>): Promise<TestTemplate> => {
+    const response = await api.put(`/templates/${id}`, template);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/templates/${id}`);
+  },
+};
+
+// Export API
+export const exportApi = {
+  exportTestsCSV: async (filters?: { modelId?: string; type?: string }): Promise<Blob> => {
+    const response = await api.get('/export/tests/csv', {
+      params: filters,
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportStatsCSV: async (): Promise<Blob> => {
+    const response = await api.get('/export/stats/csv', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportReportPDF: async (): Promise<Blob> => {
+    const response = await api.get('/export/report/pdf', {
+      responseType: 'blob',
+    });
     return response.data;
   },
 };
