@@ -1,26 +1,35 @@
 # Legal AI Benchmark Application
 
-A comprehensive web application for benchmarking and comparing AI models (Minimax, Zhipu, and others) on legal reasoning tasks.
+A comprehensive, enterprise-grade web application for benchmarking and comparing AI models (Minimax, Zhipu, and others) on legal reasoning tasks with advanced analytics, user authentication, and data export capabilities.
 
 ## Features
 
-### 1. AI Model Management
-- Add multiple AI models with API keys
+### 🔐 1. User Authentication & Security
+- **JWT-based Authentication**: Secure user registration and login
+- **Password Encryption**: Bcrypt hashing for password security
+- **API Key Encryption**: AES-256-GCM encryption for all stored API keys
+- **Protected Routes**: Authentication required for all application features
+- **Role-based Access**: Admin and user roles with different permissions
+
+### 🤖 2. AI Model Management
+- Add multiple AI models with encrypted API keys
 - Validate API connections before saving
 - Support for Minimax, Zhipu (ChatGLM), and other OpenAI-compatible APIs
-- Manage and delete models through the UI
+- User-specific model management
+- Secure credential storage with automatic encryption/decryption
 
-### 2. Document Management
+### 📄 3. Document Management
 - Upload PDF documents (statutory and legislative materials)
-- Automatic text extraction from PDFs
+- Automatic text extraction with pdf-parse
 - Document library for use in benchmarks
+- Support for files up to 50MB
 
-### 3. Benchmark Testing
+### 🧪 4. Benchmark Testing
 
 #### Legal Reasoning
 - Ask legal questions with optional document context
 - Upload statutory materials for contextual analysis
-- Record response time and quality
+- Record response time and user grades (0-10 scale)
 
 #### Document Analysis
 - Upload legal documents for AI analysis
@@ -32,31 +41,56 @@ A comprehensive web application for benchmarking and comparing AI models (Minima
 - Provide custom requirements
 - Compare drafting quality and completeness
 
-### 4. Results & Analytics
-- Dashboard with performance metrics
-- Compare models by:
-  - Average grades (0-10 scale)
-  - Response times
-  - Test counts by category
-- Visual comparison charts
-- Detailed test history
+### 📋 5. Test Templates
+- **Create Reusable Templates**: Save frequently used test configurations
+- **Template Library**: Manage templates for all benchmark types
+- **Quick Testing**: Run benchmarks instantly from templates
+- **User & Shared Templates**: Personal and organization-wide templates
+
+### 📊 6. Advanced Analytics & Visualization
+- **Interactive Charts**: Bar, line, and pie charts with Recharts
+- **Performance Comparison**: Side-by-side model performance analysis
+- **Grade Analysis**: Visual representation of average grades
+- **Response Time Tracking**: Compare model speed and efficiency
+- **Test Distribution**: View test counts by category and model
+- **Detailed Statistics**: Comprehensive performance tables
+
+### 📤 7. Data Export
+- **CSV Export**: Export tests and statistics to CSV format
+- **PDF Reports**: Generate comprehensive benchmark reports
+- **Custom Filtering**: Export specific test results
+- **Automated Reports**: Professional PDF reports with charts and tables
+
+### 📈 8. Dashboard & Reporting
+- Real-time performance metrics
+- Model comparison dashboard
+- Test history and tracking
+- Performance trends over time
 
 ## Tech Stack
 
 ### Backend
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
-- **Database**: SQLite
+- **Database**: SQLite with custom Promise wrappers
+- **Authentication**: JWT (jsonwebtoken), bcrypt
+- **Security**: AES-256-GCM encryption for API keys
 - **PDF Processing**: pdf-parse
 - **File Upload**: Multer
+- **Export**: json2csv, pdfkit
+- **Scheduling**: node-cron (for future batch/scheduled tests)
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
-- **Routing**: React Router
+- **Routing**: React Router v6
+- **State Management**: React Context API
+- **Charts**: Recharts
+- **Forms**: React Hook Form
 - **Icons**: Lucide React
-- **HTTP Client**: Axios
+- **HTTP Client**: Axios with interceptors
+- **Date Utilities**: date-fns
 
 ## Installation
 
