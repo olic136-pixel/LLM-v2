@@ -10,6 +10,7 @@ export interface AIModel {
   id: string;
   name: string;
   provider: string;
+  modelId: string; // The specific model identifier (e.g., 'abab5.5-chat', 'glm-4')
   apiKey: string;
   baseUrl: string;
   isActive: boolean;

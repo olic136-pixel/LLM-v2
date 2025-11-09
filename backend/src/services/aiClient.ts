@@ -46,8 +46,17 @@ export class AIClient {
 
   async validateConnection(): Promise<{ valid: boolean; message: string }> {
     try {
+      // Use provider-specific default models for validation
+      let defaultModel = 'gpt-3.5-turbo'; // Generic default
+      if (this.provider === 'minimax') {
+        defaultModel = 'abab5.5-chat';
+      } else if (this.provider === 'zhipu') {
+        defaultModel = 'glm-4';
+      }
+
       const response = await this.chatCompletion({
         messages: [{ role: 'user', content: 'Hello' }],
+        model: defaultModel,
         maxTokens: 10,
       });
 

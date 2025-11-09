@@ -10,6 +10,7 @@ export default function ModelsPage() {
   const [formData, setFormData] = useState({
     name: '',
     provider: 'minimax',
+    modelId: 'abab5.5-chat', // Default for minimax
     apiKey: '',
     baseUrl: '',
   });
@@ -65,7 +66,7 @@ export default function ModelsPage() {
       await modelsApi.create(formData);
       await loadModels();
       setShowAddForm(false);
-      setFormData({ name: '', provider: 'minimax', apiKey: '', baseUrl: '' });
+      setFormData({ name: '', provider: 'minimax', modelId: 'abab5.5-chat', apiKey: '', baseUrl: '' });
       setValidationResult(null);
     } catch (error) {
       console.error('Failed to add model:', error);
@@ -134,7 +135,13 @@ export default function ModelsPage() {
               <label className="block text-sm font-medium text-gray-700">Provider</label>
               <select
                 value={formData.provider}
-                onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
+                onChange={(e) => {
+                  const provider = e.target.value;
+                  let defaultModelId = 'gpt-3.5-turbo';
+                  if (provider === 'minimax') defaultModelId = 'abab5.5-chat';
+                  else if (provider === 'zhipu') defaultModelId = 'glm-4';
+                  setFormData({ ...formData, provider, modelId: defaultModelId });
+                }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
               >
                 <option value="minimax">Minimax</option>
@@ -142,6 +149,21 @@ export default function ModelsPage() {
                 <option value="openai">OpenAI</option>
                 <option value="other">Other</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Model ID</label>
+              <input
+                type="text"
+                value={formData.modelId}
+                onChange={(e) => setFormData({ ...formData, modelId: e.target.value })}
+                placeholder="e.g., abab5.5-chat, glm-4, gpt-3.5-turbo"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                The specific model identifier for API requests
+              </p>
             </div>
 
             <div>
@@ -219,7 +241,7 @@ export default function ModelsPage() {
                 type="button"
                 onClick={() => {
                   setShowAddForm(false);
-                  setFormData({ name: '', provider: 'minimax', apiKey: '', baseUrl: '' });
+                  setFormData({ name: '', provider: 'minimax', modelId: 'abab5.5-chat', apiKey: '', baseUrl: '' });
                   setValidationResult(null);
                 }}
                 className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -245,6 +267,9 @@ export default function ModelsPage() {
                       Provider
                     </th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Model ID
+                    </th>
+                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Base URL
                     </th>
                     <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -258,7 +283,7 @@ export default function ModelsPage() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {models.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-3 py-4 text-sm text-gray-500 text-center">
+                      <td colSpan={6} className="px-3 py-4 text-sm text-gray-500 text-center">
                         No models configured. Add a model to get started.
                       </td>
                     </tr>
@@ -270,6 +295,9 @@ export default function ModelsPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {model.provider}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {model.modelId || 'N/A'}
                         </td>
                         <td className="px-3 py-4 text-sm text-gray-500">
                           {model.baseUrl}

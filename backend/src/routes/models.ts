@@ -80,10 +80,10 @@ router.post('/validate', async (req: Request, res: Response) => {
 // Add a new model
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, provider, apiKey, baseUrl } = req.body;
+    const { name, provider, modelId, apiKey, baseUrl } = req.body;
 
-    if (!name || !provider || !apiKey || !baseUrl) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!name || !provider || !modelId || !apiKey || !baseUrl) {
+      return res.status(400).json({ error: 'Missing required fields (name, provider, modelId, apiKey, baseUrl)' });
     }
 
     // Validate the connection first
@@ -101,6 +101,7 @@ router.post('/', async (req: Request, res: Response) => {
       id: uuidv4(),
       name,
       provider,
+      modelId,
       apiKey: encryptedApiKey,
       baseUrl,
       isActive: true,
@@ -108,9 +109,9 @@ router.post('/', async (req: Request, res: Response) => {
     };
 
     await dbRun(
-      `INSERT INTO models (id, name, provider, apiKey, baseUrl, isActive, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [model.id, model.name, model.provider, model.apiKey, model.baseUrl, 1, model.createdAt]
+      `INSERT INTO models (id, name, provider, modelId, apiKey, baseUrl, isActive, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [model.id, model.name, model.provider, model.modelId, model.apiKey, model.baseUrl, 1, model.createdAt]
     );
 
     // Return with decrypted key for immediate use
@@ -124,7 +125,7 @@ router.post('/', async (req: Request, res: Response) => {
 // Update a model
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const { name, provider, apiKey, baseUrl, isActive } = req.body;
+    const { name, provider, modelId, apiKey, baseUrl, isActive } = req.body;
     const { id } = req.params;
 
     const existing = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);
@@ -150,9 +151,9 @@ router.put('/:id', async (req: Request, res: Response) => {
     const encryptedApiKey = apiKey !== decryptedExisting.apiKey ? encryptApiKey(apiKey) : existing.apiKey;
 
     await dbRun(
-      `UPDATE models SET name = ?, provider = ?, apiKey = ?, baseUrl = ?, isActive = ?
+      `UPDATE models SET name = ?, provider = ?, modelId = ?, apiKey = ?, baseUrl = ?, isActive = ?
        WHERE id = ?`,
-      [name, provider, encryptedApiKey, baseUrl, isActive ? 1 : 0, id]
+      [name, provider, modelId, encryptedApiKey, baseUrl, isActive ? 1 : 0, id]
     );
 
     const updated = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);

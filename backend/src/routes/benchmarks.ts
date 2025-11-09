@@ -150,6 +150,7 @@ router.post('/run', async (req: Request, res: Response) => {
 
     const response = await client.chatCompletion({
       messages,
+      model: model.modelId,
       temperature: 0.7,
       maxTokens: 4000,
     });

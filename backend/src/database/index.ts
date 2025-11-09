@@ -59,6 +59,7 @@ export const initDatabase = async () => {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       provider TEXT NOT NULL,
+      modelId TEXT NOT NULL,
       apiKey TEXT NOT NULL,
       baseUrl TEXT NOT NULL,
       isActive INTEGER DEFAULT 1,
@@ -67,6 +68,16 @@ export const initDatabase = async () => {
       FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
+
+  // Migration: Add modelId column to existing tables
+  try {
+    await dbRun(`ALTER TABLE models ADD COLUMN modelId TEXT`);
+  } catch (error: any) {
+    // Column already exists or other error - ignore
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
 
   await dbRun(`
     CREATE TABLE IF NOT EXISTS documents (
