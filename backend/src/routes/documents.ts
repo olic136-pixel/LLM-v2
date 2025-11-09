@@ -44,7 +44,7 @@ const upload = multer({
 // Get all documents
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const documents = await dbAll('SELECT * FROM documents ORDER BY uploadedAt DESC');
+    const documents = await dbAll<Document>('SELECT * FROM documents ORDER BY uploadedAt DESC');
     res.json(documents);
   } catch (error: any) {
     console.error('Error fetching documents:', error);
@@ -55,7 +55,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Get a single document
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const document = await dbGet('SELECT * FROM documents WHERE id = ?', [req.params.id]);
+    const document = await dbGet<Document>('SELECT * FROM documents WHERE id = ?', [req.params.id]);
 
     if (!document) {
       return res.status(404).json({ error: 'Document not found' });
@@ -111,7 +111,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const document = await dbGet('SELECT * FROM documents WHERE id = ?', [id]);
+    const document = await dbGet<Document>('SELECT * FROM documents WHERE id = ?', [id]);
 
     if (!document) {
       return res.status(404).json({ error: 'Document not found' });

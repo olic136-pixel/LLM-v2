@@ -9,7 +9,7 @@ const router = Router();
 // Get all models
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const models = await dbAll('SELECT * FROM models ORDER BY createdAt DESC');
+    const models = await dbAll<AIModel>('SELECT * FROM models ORDER BY createdAt DESC');
     res.json(models);
   } catch (error: any) {
     console.error('Error fetching models:', error);
@@ -20,7 +20,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Get a single model
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const model = await dbGet('SELECT * FROM models WHERE id = ?', [req.params.id]);
+    const model = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [req.params.id]);
 
     if (!model) {
       return res.status(404).json({ error: 'Model not found' });
@@ -105,7 +105,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { name, provider, apiKey, baseUrl, isActive } = req.body;
     const { id } = req.params;
 
-    const existing = await dbGet('SELECT * FROM models WHERE id = ?', [id]);
+    const existing = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);
 
     if (!existing) {
       return res.status(404).json({ error: 'Model not found' });
@@ -127,7 +127,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       [name, provider, apiKey, baseUrl, isActive ? 1 : 0, id]
     );
 
-    const updated = await dbGet('SELECT * FROM models WHERE id = ?', [id]);
+    const updated = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);
     res.json(updated);
   } catch (error: any) {
     console.error('Error updating model:', error);
@@ -140,7 +140,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const existing = await dbGet('SELECT * FROM models WHERE id = ?', [id]);
+    const existing = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [id]);
 
     if (!existing) {
       return res.status(404).json({ error: 'Model not found' });

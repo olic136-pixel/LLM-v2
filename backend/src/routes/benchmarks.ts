@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { dbRun, dbGet, dbAll } from '../database';
-import { BenchmarkRequest, BenchmarkResponse, BenchmarkTest, BenchmarkStats } from '../types';
+import { BenchmarkRequest, BenchmarkResponse, BenchmarkTest, BenchmarkStats, AIModel, Document } from '../types';
 import { createAIClient } from '../services/aiClient';
 
 const router = Router();
@@ -33,7 +33,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     query += ' ORDER BY createdAt DESC';
 
-    const tests = await dbAll(query, params);
+    const tests = await dbAll<BenchmarkTest>(query, params);
     res.json(tests);
   } catch (error: any) {
     console.error('Error fetching benchmark tests:', error);
@@ -44,7 +44,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Get a single benchmark test
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const test = await dbGet('SELECT * FROM benchmark_tests WHERE id = ?', [req.params.id]);
+    const test = await dbGet<BenchmarkTest>('SELECT * FROM benchmark_tests WHERE id = ?', [req.params.id]);
 
     if (!test) {
       return res.status(404).json({ error: 'Test not found' });
@@ -67,7 +67,7 @@ router.post('/run', async (req: Request, res: Response) => {
     }
 
     // Get model details
-    const model = await dbGet('SELECT * FROM models WHERE id = ?', [request.modelId]);
+    const model = await dbGet<AIModel>('SELECT * FROM models WHERE id = ?', [request.modelId]);
 
     if (!model) {
       return res.status(404).json({ error: 'Model not found' });
@@ -97,7 +97,7 @@ router.post('/run', async (req: Request, res: Response) => {
 
       // If document provided, get its content for context
       if (request.documentId) {
-        const doc = await dbGet('SELECT * FROM documents WHERE id = ?', [request.documentId]);
+        const doc = await dbGet<Document>('SELECT * FROM documents WHERE id = ?', [request.documentId]);
 
         if (doc) {
           context = doc.content;
@@ -110,7 +110,7 @@ router.post('/run', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Document is required for document analysis tests' });
       }
 
-      const doc = await dbGet('SELECT * FROM documents WHERE id = ?', [request.documentId]);
+      const doc = await dbGet<Document>('SELECT * FROM documents WHERE id = ?', [request.documentId]);
 
       if (!doc) {
         return res.status(404).json({ error: 'Document not found' });
@@ -211,7 +211,7 @@ router.post('/:id/grade', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Grade must be a number between 0 and 10' });
     }
 
-    const test = await dbGet('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
+    const test = await dbGet<BenchmarkTest>('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
 
     if (!test) {
       return res.status(404).json({ error: 'Test not found' });
@@ -222,7 +222,7 @@ router.post('/:id/grade', async (req: Request, res: Response) => {
       [grade, feedback || null, id]
     );
 
-    const updated = await dbGet('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
+    const updated = await dbGet<BenchmarkTest>('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
     res.json(updated);
   } catch (error: any) {
     console.error('Error grading test:', error);
@@ -233,29 +233,29 @@ router.post('/:id/grade', async (req: Request, res: Response) => {
 // Get benchmark statistics
 router.get('/stats/summary', async (req: Request, res: Response) => {
   try {
-    const models = await dbAll('SELECT * FROM models');
+    const models = await dbAll<AIModel>('SELECT * FROM models');
     const stats: BenchmarkStats[] = [];
 
     for (const model of models) {
-      const tests = await dbAll(
+      const tests = await dbAll<BenchmarkTest>(
         'SELECT * FROM benchmark_tests WHERE modelId = ?',
         [model.id]
       );
 
-      const gradedTests = tests.filter((t: any) => t.userGrade !== null);
+      const gradedTests = tests.filter((t) => t.userGrade !== null);
 
       const testsByType = {
-        legal_reasoning: tests.filter((t: any) => t.type === 'legal_reasoning').length,
-        document_analysis: tests.filter((t: any) => t.type === 'document_analysis').length,
-        document_drafting: tests.filter((t: any) => t.type === 'document_drafting').length,
+        legal_reasoning: tests.filter((t) => t.type === 'legal_reasoning').length,
+        document_analysis: tests.filter((t) => t.type === 'document_analysis').length,
+        document_drafting: tests.filter((t) => t.type === 'document_drafting').length,
       };
 
       const averageResponseTime = tests.length > 0
-        ? tests.reduce((sum: number, t: any) => sum + t.responseTime, 0) / tests.length
+        ? tests.reduce((sum, t) => sum + t.responseTime, 0) / tests.length
         : 0;
 
       const averageGrade = gradedTests.length > 0
-        ? gradedTests.reduce((sum: number, t: any) => sum + t.userGrade, 0) / gradedTests.length
+        ? gradedTests.reduce((sum, t) => sum + (t.userGrade || 0), 0) / gradedTests.length
         : 0;
 
       stats.push({
@@ -280,7 +280,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const test = await dbGet('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
+    const test = await dbGet<BenchmarkTest>('SELECT * FROM benchmark_tests WHERE id = ?', [id]);
 
     if (!test) {
       return res.status(404).json({ error: 'Test not found' });
