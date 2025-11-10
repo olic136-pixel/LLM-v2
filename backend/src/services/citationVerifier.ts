@@ -132,12 +132,91 @@ export class CitationVerifier {
     let confidence = 0.5; // Default neutral confidence
     let isLikelyValid = false;
 
-    // Check citation format validity
+    // Check for UK neutral citation format: [2023] UKSC 15
+    if (citation.caseReporter && /\[\d{4}\]\s+(UKSC|UKPC|EWCA|EWHC|EWFC|UKUT|UKFTT)/.test(citation.caseReporter)) {
+      const hasProperCaseName = citation.caseName ? /^[A-Z].*v\.\s+[A-Z]/.test(citation.caseName) || /^R\s+v\s+/.test(citation.caseName) : false;
+      const hasYear = citation.year ? /^\d{4}$/.test(citation.year) : false;
+
+      confidence = 0.7; // UK neutral citations are well-structured
+      isLikelyValid = true;
+
+      if (hasProperCaseName) {
+        confidence += 0.1;
+      }
+
+      if (hasYear && citation.year) {
+        const year = parseInt(citation.year);
+        // UK Supreme Court established in 2009
+        if (year >= 1950 && year <= new Date().getFullYear()) {
+          confidence += 0.1;
+        }
+      }
+
+      return {
+        citationId: citation.id,
+        verified: false,
+        verificationStatus: 'pending',
+        verificationDetails: 'UK neutral citation format appears valid. External verification recommended.',
+        isHallucination: !isLikelyValid,
+        confidence: Math.min(confidence, 1.0),
+        sourceDatabase: 'Heuristic',
+      };
+    }
+
+    // Check for UK law report format: [2023] 1 WLR 123
+    if (citation.caseReporter && /\[\d{4}\]\s+(?:\d+\s+)?(WLR|AC|QB|Ch|Fam|All\s+ER|BCLC)/.test(citation.caseReporter)) {
+      confidence = 0.75; // UK law reports are authoritative
+      isLikelyValid = true;
+
+      return {
+        citationId: citation.id,
+        verified: false,
+        verificationStatus: 'pending',
+        verificationDetails: 'UK law report citation format appears valid.',
+        isHallucination: false,
+        confidence: Math.min(confidence, 1.0),
+        sourceDatabase: 'Heuristic',
+      };
+    }
+
+    // Check for DIFC citation format
+    if (citation.court && citation.court.includes('DIFC')) {
+      const hasYear = citation.year ? /^\d{4}$/.test(citation.year) : false;
+      const validDIFCCourts = ['CFI', 'CA', 'SCT', 'ARB'];
+      const hasValidCourt = validDIFCCourts.some((court) => citation.court?.includes(court));
+
+      confidence = 0.7;
+      isLikelyValid = true;
+
+      if (hasValidCourt) {
+        confidence += 0.1;
+      }
+
+      if (hasYear && citation.year) {
+        const year = parseInt(citation.year);
+        // DIFC Courts established in 2004
+        if (year >= 2004 && year <= new Date().getFullYear()) {
+          confidence += 0.1;
+        }
+      }
+
+      return {
+        citationId: citation.id,
+        verified: false,
+        verificationStatus: 'pending',
+        verificationDetails: 'DIFC citation format appears valid.',
+        isHallucination: !isLikelyValid,
+        confidence: Math.min(confidence, 1.0),
+        sourceDatabase: 'Heuristic',
+      };
+    }
+
+    // US citation format validation (original logic)
     const hasProperCaseName = citation.caseName ? /^[A-Z].*v\.\s+[A-Z]/.test(citation.caseName) : false;
     const hasValidReporter = citation.caseReporter ? /\d+\s+[A-Z][a-z.]+\s+\d+/.test(citation.caseReporter) : false;
     const hasYear = citation.year ? /^\d{4}$/.test(citation.year) : false;
 
-    // Well-known reporters increase confidence
+    // Well-known US reporters increase confidence
     const knownReporters = ['U.S.', 'F.2d', 'F.3d', 'F.Supp', 'S.Ct.'];
     const hasKnownReporter = citation.caseReporter
       ? knownReporters.some((r) => citation.caseReporter?.includes(r))
