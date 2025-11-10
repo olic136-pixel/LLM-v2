@@ -10,6 +10,8 @@ import benchmarksRouter from './routes/benchmarks';
 import templatesRouter from './routes/templates';
 import exportRouter from './routes/export';
 import examsRouter from './routes/exams';
+import answerKeysRouter from './routes/answerKeys';
+import rubricsRouter from './routes/rubrics';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +32,8 @@ app.use('/api/benchmarks', benchmarksRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/export', exportRouter);
 app.use('/api/exams', examsRouter);
+app.use('/api/answer-keys', answerKeysRouter);
+app.use('/api/rubrics', rubricsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

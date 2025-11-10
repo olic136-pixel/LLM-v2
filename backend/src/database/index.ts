@@ -211,6 +211,10 @@ export const initDatabase = async () => {
       assessorFeedback TEXT,
       assessorName TEXT,
       status TEXT DEFAULT 'pending',
+      autoGradeScore REAL,
+      citationAccuracy REAL,
+      hallucinationCount INTEGER DEFAULT 0,
+      totalCitations INTEGER DEFAULT 0,
       userId TEXT,
       createdAt TEXT NOT NULL,
       gradedAt TEXT,
@@ -219,6 +223,101 @@ export const initDatabase = async () => {
       FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
+
+  // Answer keys table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS answer_keys (
+      id TEXT PRIMARY KEY,
+      examDocumentId TEXT NOT NULL,
+      questionNumber INTEGER NOT NULL,
+      referenceAnswer TEXT NOT NULL,
+      keywords TEXT,
+      maxScore REAL DEFAULT 10,
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (examDocumentId) REFERENCES documents(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Rubrics table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS rubrics (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      examDocumentId TEXT,
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (examDocumentId) REFERENCES documents(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
+    )
+  `);
+
+  // Rubric criteria table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS rubric_criteria (
+      id TEXT PRIMARY KEY,
+      rubricId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      weight REAL NOT NULL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (rubricId) REFERENCES rubrics(id)
+    )
+  `);
+
+  // Citations table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS citations (
+      id TEXT PRIMARY KEY,
+      examResultId TEXT NOT NULL,
+      questionNumber INTEGER NOT NULL,
+      citationText TEXT NOT NULL,
+      caseName TEXT,
+      caseReporter TEXT,
+      verified BOOLEAN DEFAULT 0,
+      verificationStatus TEXT DEFAULT 'pending',
+      verificationDetails TEXT,
+      isHallucination BOOLEAN DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      verifiedAt TEXT,
+      FOREIGN KEY (examResultId) REFERENCES exam_results(id)
+    )
+  `);
+
+  // Migration: Add new columns to existing exam_results
+  try {
+    await dbRun(`ALTER TABLE exam_results ADD COLUMN autoGradeScore REAL`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
+
+  try {
+    await dbRun(`ALTER TABLE exam_results ADD COLUMN citationAccuracy REAL`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
+
+  try {
+    await dbRun(`ALTER TABLE exam_results ADD COLUMN hallucinationCount INTEGER DEFAULT 0`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
+
+  try {
+    await dbRun(`ALTER TABLE exam_results ADD COLUMN totalCitations INTEGER DEFAULT 0`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
 
   console.log('Database initialized successfully');
 };

@@ -106,6 +106,10 @@ export interface ExamResult {
   assessorGrade?: number;
   assessorFeedback?: string;
   assessorName?: string;
+  autoGradeScore?: number;
+  citationAccuracy?: number;
+  hallucinationCount?: number;
+  totalCitations?: number;
   status: 'pending' | 'graded' | 'reviewed';
   userId?: string;
   createdAt: string;
@@ -117,4 +121,67 @@ export interface ExamAnswer {
   question: string;
   answer: string;
   timeSpent: number;
+}
+
+export interface AnswerKey {
+  id: string;
+  examDocumentId: string;
+  questionNumber: number;
+  referenceAnswer: string;
+  keywords: string[]; // Array of keywords
+  maxScore: number;
+  userId?: string;
+  createdAt: string;
+}
+
+export interface Rubric {
+  id: string;
+  name: string;
+  description?: string;
+  examDocumentId?: string;
+  userId?: string;
+  createdAt: string;
+  criteria: RubricCriterion[];
+}
+
+export interface RubricCriterion {
+  id: string;
+  rubricId: string;
+  name: string;
+  description?: string;
+  weight: number; // 0-1 scale
+  createdAt: string;
+}
+
+export interface Citation {
+  id: string;
+  examResultId: string;
+  questionNumber: number;
+  citationText: string;
+  caseName?: string;
+  caseReporter?: string;
+  verified: boolean;
+  verificationStatus: 'verified' | 'not_found' | 'partial_match' | 'error' | 'pending';
+  verificationDetails?: string;
+  isHallucination: boolean;
+  createdAt: string;
+  verifiedAt?: string;
+}
+
+export interface AutoGradeReport {
+  totalScore: number;
+  maxTotalScore: number;
+  percentage: number;
+  questionGrades: QuestionGrade[];
+  overallFeedback: string;
+}
+
+export interface QuestionGrade {
+  questionNumber: number;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  feedback: string;
+  keywordMatches: string[];
+  missingKeywords: string[];
 }

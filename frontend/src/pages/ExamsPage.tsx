@@ -257,6 +257,48 @@ export default function ExamsPage() {
                         </span>
                       </div>
                     </div>
+                    {/* Auto-Grade Score */}
+                    {result.autoGradeScore !== undefined && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-5 w-5 text-blue-400 mr-2" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-800">
+                              Auto-Grade Score: {result.autoGradeScore.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-blue-700">
+                              Automatically graded using answer keys
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Citation Metrics */}
+                    {result.totalCitations !== undefined && result.totalCitations > 0 && (
+                      <div className="mt-3 p-3 bg-purple-50 rounded-md">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 text-purple-400 mr-2" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-purple-800">
+                              Citations: {result.totalCitations} found
+                            </p>
+                            {result.citationAccuracy !== undefined && (
+                              <p className="text-xs text-purple-700">
+                                Accuracy: {result.citationAccuracy.toFixed(1)}%
+                              </p>
+                            )}
+                            {result.hallucinationCount !== undefined && result.hallucinationCount > 0 && (
+                              <p className="text-xs text-red-700">
+                                ⚠️ {result.hallucinationCount} potential hallucination(s)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assessor Grade */}
                     {result.assessorGrade !== undefined && (
                       <div className="mt-3 p-3 bg-green-50 rounded-md">
                         <div className="flex items-center">

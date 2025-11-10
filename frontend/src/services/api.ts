@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AIModel, BenchmarkTest, Document, BenchmarkStats, User, TestTemplate, ExamResult } from '../types';
+import { AIModel, BenchmarkTest, Document, BenchmarkStats, User, TestTemplate, ExamResult, AnswerKey, Rubric, Citation, AutoGradeReport } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -248,6 +248,91 @@ export const examsApi = {
 
   deleteResult: async (id: string): Promise<void> => {
     await api.delete(`/exams/results/${id}`);
+  },
+
+  getCitations: async (resultId: string): Promise<Citation[]> => {
+    const response = await api.get(`/exams/results/${resultId}/citations`);
+    return response.data;
+  },
+
+  autoGradeResult: async (resultId: string): Promise<{ autoGradeScore: number; gradeReport: AutoGradeReport }> => {
+    const response = await api.post(`/exams/results/${resultId}/auto-grade`);
+    return response.data;
+  },
+};
+
+// Answer Keys API
+export const answerKeysApi = {
+  getByExam: async (examDocumentId: string): Promise<AnswerKey[]> => {
+    const response = await api.get(`/answer-keys/exam/${examDocumentId}`);
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<AnswerKey> => {
+    const response = await api.get(`/answer-keys/${id}`);
+    return response.data;
+  },
+
+  create: async (data: Omit<AnswerKey, 'id' | 'createdAt' | 'userId'>): Promise<AnswerKey> => {
+    const response = await api.post('/answer-keys', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<AnswerKey>): Promise<AnswerKey> => {
+    const response = await api.put(`/answer-keys/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/answer-keys/${id}`);
+  },
+
+  bulkCreate: async (data: { examDocumentId: string; answerKeys: Array<Omit<AnswerKey, 'id' | 'createdAt' | 'userId'>> }): Promise<{ created: number; answerKeys: AnswerKey[] }> => {
+    const response = await api.post('/answer-keys/bulk', data);
+    return response.data;
+  },
+};
+
+// Rubrics API
+export const rubricsApi = {
+  getAll: async (examDocumentId?: string): Promise<Rubric[]> => {
+    const response = await api.get('/rubrics', {
+      params: examDocumentId ? { examDocumentId } : undefined,
+    });
+    return response.data;
+  },
+
+  getById: async (id: string): Promise<Rubric> => {
+    const response = await api.get(`/rubrics/${id}`);
+    return response.data;
+  },
+
+  create: async (data: Omit<Rubric, 'id' | 'createdAt' | 'userId'>): Promise<Rubric> => {
+    const response = await api.post('/rubrics', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<Rubric>): Promise<Rubric> => {
+    const response = await api.put(`/rubrics/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/rubrics/${id}`);
+  },
+
+  addCriterion: async (rubricId: string, data: Omit<any, 'id' | 'rubricId' | 'createdAt'>): Promise<any> => {
+    const response = await api.post(`/rubrics/${rubricId}/criteria`, data);
+    return response.data;
+  },
+
+  updateCriterion: async (id: string, data: Partial<any>): Promise<any> => {
+    const response = await api.put(`/rubrics/criteria/${id}`, data);
+    return response.data;
+  },
+
+  deleteCriterion: async (id: string): Promise<void> => {
+    await api.delete(`/rubrics/criteria/${id}`);
   },
 };
 

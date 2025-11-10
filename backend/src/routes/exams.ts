@@ -13,6 +13,9 @@ import {
 import { createAIClient } from '../services/aiClient';
 import { decryptApiKey } from '../services/encryption';
 import { authMiddleware } from '../middleware/auth';
+import citationExtractor from '../services/citationExtractor';
+import citationVerifier from '../services/citationVerifier';
+import autoGrader from '../services/autoGrader';
 
 const router = Router();
 
@@ -176,7 +179,59 @@ router.post('/take', async (req: Request, res: Response) => {
 
     const totalTime = Date.now() - startTime;
 
-    // Save exam result
+    // Extract citations from all answers
+    console.log('Extracting citations from exam answers...');
+    const citationsByQuestion = citationExtractor.extractFromExamAnswers(
+      answers.map(a => ({ questionNumber: a.questionNumber, answer: a.answer }))
+    );
+
+    // Flatten citations for verification
+    const allCitations = Array.from(citationsByQuestion.values()).flat();
+    let totalCitations = allCitations.length;
+    let hallucinationCount = 0;
+    let citationAccuracy = 0;
+
+    // Verify citations if any were found
+    if (totalCitations > 0) {
+      console.log(`Verifying ${totalCitations} citations...`);
+      const verificationResults = await citationVerifier.verifyBatch(allCitations);
+
+      // Calculate metrics
+      const metrics = citationVerifier.calculateAccuracyMetrics(verificationResults);
+      totalCitations = metrics.totalCitations;
+      hallucinationCount = metrics.hallucinatedCitations;
+      citationAccuracy = metrics.citationAccuracy;
+
+      console.log(`Citation accuracy: ${citationAccuracy.toFixed(2)}%, Hallucinations: ${hallucinationCount}`);
+    }
+
+    // Try auto-grading if answer keys exist
+    let autoGradeScore: number | undefined;
+    let autoGradeFeedback: string | undefined;
+
+    try {
+      const hasAnswerKeys = await dbGet(
+        'SELECT COUNT(*) as count FROM answer_keys WHERE examDocumentId = ?',
+        [examDocumentId]
+      );
+
+      if (hasAnswerKeys && (hasAnswerKeys as any).count > 0) {
+        console.log('Auto-grading exam with answer keys...');
+        const gradeReport = await autoGrader.gradeExam(
+          examDocumentId,
+          answers.map(a => ({ questionNumber: a.questionNumber, answer: a.answer }))
+        );
+
+        autoGradeScore = gradeReport.percentage;
+        autoGradeFeedback = gradeReport.overallFeedback;
+
+        console.log(`Auto-grade score: ${autoGradeScore.toFixed(2)}%`);
+      }
+    } catch (error: any) {
+      console.log('Auto-grading skipped:', error.message);
+    }
+
+    // Save exam result with all metrics
     const resultId = uuidv4();
     const examResult: ExamResult = {
       id: resultId,
@@ -187,7 +242,7 @@ router.post('/take', async (req: Request, res: Response) => {
       answers: JSON.stringify(answers),
       responseTime: totalTime,
       totalQuestions: questions.length,
-      status: 'pending',
+      status: autoGradeScore !== undefined ? 'graded' : 'pending',
       userId,
       createdAt: new Date().toISOString(),
     };
@@ -195,8 +250,9 @@ router.post('/take', async (req: Request, res: Response) => {
     await dbRun(
       `INSERT INTO exam_results (
         id, examDocumentId, examName, modelId, modelName,
-        answers, responseTime, totalQuestions, status, userId, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        answers, responseTime, totalQuestions, status, userId, createdAt,
+        autoGradeScore, citationAccuracy, hallucinationCount, totalCitations
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         examResult.id,
         examResult.examDocumentId,
@@ -209,8 +265,52 @@ router.post('/take', async (req: Request, res: Response) => {
         examResult.status,
         examResult.userId,
         examResult.createdAt,
+        autoGradeScore || null,
+        citationAccuracy || null,
+        hallucinationCount,
+        totalCitations,
       ]
     );
+
+    // Save individual citations to database
+    if (allCitations.length > 0) {
+      console.log('Saving citations to database...');
+      const verificationResults = await citationVerifier.verifyBatch(allCitations);
+
+      for (let i = 0; i < allCitations.length; i++) {
+        const citation = allCitations[i];
+        const verification = verificationResults[i];
+
+        // Find which question this citation came from
+        let questionNumber = 1;
+        for (const [qNum, citations] of citationsByQuestion.entries()) {
+          if (citations.find(c => c.id === citation.id)) {
+            questionNumber = qNum;
+            break;
+          }
+        }
+
+        await dbRun(
+          `INSERT INTO citations (
+            id, examResultId, questionNumber, citationText, caseName, caseReporter,
+            verified, verificationStatus, verificationDetails, isHallucination, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            citation.id,
+            resultId,
+            questionNumber,
+            citation.citationText,
+            citation.caseName || null,
+            citation.caseReporter || null,
+            verification.verified ? 1 : 0,
+            verification.verificationStatus,
+            verification.verificationDetails || null,
+            verification.isHallucination ? 1 : 0,
+            new Date().toISOString(),
+          ]
+        );
+      }
+    }
 
     const response: TakeExamResponse = {
       resultId,
@@ -285,6 +385,74 @@ router.post('/grade', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error grading exam:', error);
     res.status(500).json({ error: 'Failed to grade exam' });
+  }
+});
+
+// Get citations for an exam result
+router.get('/results/:id/citations', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Check if exam result exists
+    const result = await dbGet<ExamResult>(
+      'SELECT * FROM exam_results WHERE id = ?',
+      [id]
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: 'Exam result not found' });
+    }
+
+    // Get all citations for this result
+    const citations = await dbAll(
+      'SELECT * FROM citations WHERE examResultId = ? ORDER BY questionNumber, createdAt',
+      [id]
+    );
+
+    res.json(citations);
+  } catch (error: any) {
+    console.error('Error fetching citations:', error);
+    res.status(500).json({ error: 'Failed to fetch citations' });
+  }
+});
+
+// Auto-grade an exam with answer keys (can be done after exam is taken)
+router.post('/results/:id/auto-grade', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await dbGet<ExamResult>(
+      'SELECT * FROM exam_results WHERE id = ?',
+      [id]
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: 'Exam result not found' });
+    }
+
+    const answers = JSON.parse(result.answers);
+
+    // Perform auto-grading
+    const gradeReport = await autoGrader.gradeExam(
+      result.examDocumentId,
+      answers.map((a: ExamAnswer) => ({ questionNumber: a.questionNumber, answer: a.answer }))
+    );
+
+    // Update exam result
+    await dbRun(
+      `UPDATE exam_results
+       SET autoGradeScore = ?, status = 'graded'
+       WHERE id = ?`,
+      [gradeReport.percentage, id]
+    );
+
+    res.json({
+      autoGradeScore: gradeReport.percentage,
+      gradeReport,
+    });
+  } catch (error: any) {
+    console.error('Error auto-grading exam:', error);
+    res.status(500).json({ error: error.message || 'Failed to auto-grade exam' });
   }
 });
 

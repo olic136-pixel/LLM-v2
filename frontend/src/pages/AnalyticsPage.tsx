@@ -99,11 +99,12 @@ export default function AnalyticsPage() {
     time: parseInt(stat.averageResponseTime.toFixed(0)),
   }));
 
-  const testTypeData = stats.flatMap((stat) => [
-    { type: 'Legal Reasoning', model: stat.modelName, count: stat.testsByType.legal_reasoning },
-    { type: 'Document Analysis', model: stat.modelName, count: stat.testsByType.document_analysis },
-    { type: 'Document Drafting', model: stat.modelName, count: stat.testsByType.document_drafting },
-  ]);
+  // Data prepared for future test type breakdown chart
+  // const testTypeData = stats.flatMap((stat) => [
+  //   { type: 'Legal Reasoning', model: stat.modelName, count: stat.testsByType.legal_reasoning },
+  //   { type: 'Document Analysis', model: stat.modelName, count: stat.testsByType.document_analysis },
+  //   { type: 'Document Drafting', model: stat.modelName, count: stat.testsByType.document_drafting },
+  // ]);
 
   const totalTestsByType = {
     'Legal Reasoning': stats.reduce((sum, s) => sum + s.testsByType.legal_reasoning, 0),
@@ -196,7 +197,7 @@ export default function AnalyticsPage() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {pieData.map((entry, index) => (
+                  {pieData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
