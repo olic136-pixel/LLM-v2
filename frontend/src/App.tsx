@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Home, Settings, FileText, TrendingUp, BarChart3, Layout, LogOut, User } from 'lucide-react';
+import { Home, Settings, FileText, TrendingUp, BarChart3, Layout, LogOut, User, Award } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ModelsPage from './pages/ModelsPage';
 import BenchmarksPage from './pages/BenchmarksPage';
@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import TemplatesPage from './pages/TemplatesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ExamsPage from './pages/ExamsPage';
 
 function AppContent() {
   const { user, logout, loading } = useAuth();
@@ -77,6 +78,13 @@ function AppContent() {
                   Benchmarks
                 </Link>
                 <Link
+                  to="/exams"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                >
+                  <Award className="w-4 h-4 mr-2" />
+                  Exams
+                </Link>
+                <Link
                   to="/templates"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
                 >
@@ -109,6 +117,7 @@ function AppContent() {
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/benchmarks" element={<BenchmarksPage />} />
+          <Route path="/exams" element={<ExamsPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
