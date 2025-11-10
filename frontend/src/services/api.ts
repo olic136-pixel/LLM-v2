@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AIModel, BenchmarkTest, Document, BenchmarkStats, User, TestTemplate } from '../types';
+import { AIModel, BenchmarkTest, Document, BenchmarkStats, User, TestTemplate, ExamResult } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -96,9 +96,10 @@ export const documentsApi = {
     return response.data;
   },
 
-  upload: async (file: File): Promise<Document> => {
+  upload: async (file: File, category: 'general' | 'exam' | 'bar_exam' | 'law_exam' = 'general'): Promise<Document> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('category', category);
 
     const response = await api.post('/documents/upload', formData, {
       headers: {
@@ -201,6 +202,52 @@ export const exportApi = {
       responseType: 'blob',
     });
     return response.data;
+  },
+};
+
+// Exams API
+export const examsApi = {
+  getResults: async (): Promise<ExamResult[]> => {
+    const response = await api.get('/exams/results');
+    return response.data;
+  },
+
+  getResultById: async (id: string): Promise<ExamResult> => {
+    const response = await api.get(`/exams/results/${id}`);
+    return response.data;
+  },
+
+  takeExam: async (data: { examDocumentId: string; modelId: string }): Promise<{
+    resultId: string;
+    examName: string;
+    modelName: string;
+    answers: any[];
+    totalTime: number;
+  }> => {
+    const response = await api.post('/exams/take', data);
+    return response.data;
+  },
+
+  gradeExam: async (data: {
+    resultId: string;
+    assessorGrade: number;
+    assessorFeedback?: string;
+    assessorName?: string;
+    correctAnswers?: number;
+  }): Promise<ExamResult> => {
+    const response = await api.post('/exams/grade', data);
+    return response.data;
+  },
+
+  exportResult: async (id: string): Promise<Blob> => {
+    const response = await api.get(`/exams/export/${id}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  deleteResult: async (id: string): Promise<void> => {
+    await api.delete(`/exams/results/${id}`);
   },
 };
 

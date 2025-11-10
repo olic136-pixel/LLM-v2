@@ -84,11 +84,31 @@ export const initDatabase = async () => {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       type TEXT NOT NULL,
+      category TEXT DEFAULT 'general',
       content TEXT NOT NULL,
       filePath TEXT NOT NULL,
-      uploadedAt TEXT NOT NULL
+      userId TEXT,
+      uploadedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
+
+  // Migration: Add category and userId columns to existing documents
+  try {
+    await dbRun(`ALTER TABLE documents ADD COLUMN category TEXT DEFAULT 'general'`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
+
+  try {
+    await dbRun(`ALTER TABLE documents ADD COLUMN userId TEXT`);
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column name')) {
+      console.log('Migration note:', error.message);
+    }
+  }
 
   await dbRun(`
     CREATE TABLE IF NOT EXISTS benchmark_tests (
@@ -171,6 +191,32 @@ export const initDatabase = async () => {
       testCount INTEGER NOT NULL,
       timestamp TEXT NOT NULL,
       FOREIGN KEY (modelId) REFERENCES models(id)
+    )
+  `);
+
+  // Exam results table
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS exam_results (
+      id TEXT PRIMARY KEY,
+      examDocumentId TEXT NOT NULL,
+      examName TEXT NOT NULL,
+      modelId TEXT NOT NULL,
+      modelName TEXT NOT NULL,
+      answers TEXT NOT NULL,
+      responseTime REAL NOT NULL,
+      score REAL,
+      totalQuestions INTEGER,
+      correctAnswers INTEGER,
+      assessorGrade REAL,
+      assessorFeedback TEXT,
+      assessorName TEXT,
+      status TEXT DEFAULT 'pending',
+      userId TEXT,
+      createdAt TEXT NOT NULL,
+      gradedAt TEXT,
+      FOREIGN KEY (examDocumentId) REFERENCES documents(id),
+      FOREIGN KEY (modelId) REFERENCES models(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
     )
   `);
 

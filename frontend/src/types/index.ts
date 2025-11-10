@@ -39,8 +39,10 @@ export interface Document {
   id: string;
   name: string;
   type: string;
+  category: 'general' | 'exam' | 'bar_exam' | 'law_exam';
   content: string;
   filePath: string;
+  userId?: string;
   uploadedAt: string;
 }
 
@@ -88,4 +90,31 @@ export interface PerformanceSnapshot {
   averageGrade: number;
   testCount: number;
   timestamp: string;
+}
+
+export interface ExamResult {
+  id: string;
+  examDocumentId: string;
+  examName: string;
+  modelId: string;
+  modelName: string;
+  answers: ExamAnswer[];
+  responseTime: number;
+  score?: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
+  assessorGrade?: number;
+  assessorFeedback?: string;
+  assessorName?: string;
+  status: 'pending' | 'graded' | 'reviewed';
+  userId?: string;
+  createdAt: string;
+  gradedAt?: string;
+}
+
+export interface ExamAnswer {
+  questionNumber: number;
+  question: string;
+  answer: string;
+  timeSpent: number;
 }

@@ -55,8 +55,10 @@ export interface Document {
   id: string;
   name: string;
   type: string;
+  category: 'general' | 'exam' | 'bar_exam' | 'law_exam';
   content: string;
   filePath: string;
+  userId?: string;
   uploadedAt: string;
 }
 
@@ -153,4 +155,53 @@ export interface PerformanceSnapshot {
   averageGrade: number;
   testCount: number;
   timestamp: string;
+}
+
+// Exam types
+export interface ExamResult {
+  id: string;
+  examDocumentId: string;
+  examName: string;
+  modelId: string;
+  modelName: string;
+  answers: string; // JSON stringified array of answers
+  responseTime: number;
+  score?: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
+  assessorGrade?: number;
+  assessorFeedback?: string;
+  assessorName?: string;
+  status: 'pending' | 'graded' | 'reviewed';
+  userId?: string;
+  createdAt: string;
+  gradedAt?: string;
+}
+
+export interface ExamAnswer {
+  questionNumber: number;
+  question: string;
+  answer: string;
+  timeSpent: number;
+}
+
+export interface TakeExamRequest {
+  examDocumentId: string;
+  modelId: string;
+}
+
+export interface TakeExamResponse {
+  resultId: string;
+  examName: string;
+  modelName: string;
+  answers: ExamAnswer[];
+  totalTime: number;
+}
+
+export interface GradeExamRequest {
+  resultId: string;
+  assessorGrade: number;
+  assessorFeedback?: string;
+  assessorName?: string;
+  correctAnswers?: number;
 }

@@ -6,8 +6,12 @@ import fs from 'fs';
 import { dbRun, dbGet, dbAll } from '../database';
 import { pdfProcessor } from '../services/pdfProcessor';
 import { Document } from '../types';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
+
+// Apply auth middleware to protected routes
+router.use(authMiddleware);
 
 // Configure multer for file uploads
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
@@ -75,6 +79,15 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const userId = (req as any).user?.userId;
+    const category = req.body.category || 'general'; // Can be 'general', 'exam', 'bar_exam', 'law_exam'
+
+    // Validate category
+    const validCategories = ['general', 'exam', 'bar_exam', 'law_exam'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({ error: 'Invalid category. Must be one of: general, exam, bar_exam, law_exam' });
+    }
+
     // Extract text from PDF
     const pdfResult = await pdfProcessor.extractText(req.file.path);
 
@@ -82,15 +95,17 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       id: uuidv4(),
       name: req.file.originalname,
       type: 'application/pdf',
+      category,
       content: pdfResult.text,
       filePath: req.file.path,
+      userId,
       uploadedAt: new Date().toISOString(),
     };
 
     await dbRun(
-      `INSERT INTO documents (id, name, type, content, filePath, uploadedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [document.id, document.name, document.type, document.content, document.filePath, document.uploadedAt]
+      `INSERT INTO documents (id, name, type, category, content, filePath, userId, uploadedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [document.id, document.name, document.type, document.category, document.content, document.filePath, document.userId, document.uploadedAt]
     );
 
     res.status(201).json(document);
